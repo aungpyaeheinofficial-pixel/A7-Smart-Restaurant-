@@ -1,0 +1,5 @@
+{
+  "name": "A7 Restaurant OS",
+  "description": "A production-ready, high-performance restaurant operating system MVP featuring POS, Table Management, KDS, Menu Management, Inventory, Staffing, and real-time Analytics.",
+  "requestFramePermissions": []
+}
