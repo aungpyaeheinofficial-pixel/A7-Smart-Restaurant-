@@ -27,6 +27,8 @@ export function createApp() {
         // Allow non-browser clients (curl/postman) without origin.
         if (!origin) return cb(null, true);
         const allowList = env.CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
+        // Support wildcard for quick setups (e.g. no domain yet)
+        if (allowList.includes('*')) return cb(null, true);
         if (allowList.includes(origin)) return cb(null, true);
         return cb(new Error(`CORS blocked for origin: ${origin}`));
       },

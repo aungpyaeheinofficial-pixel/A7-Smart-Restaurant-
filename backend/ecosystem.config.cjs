@@ -18,10 +18,11 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         PORT: 7500,
-        // Set this on your VPS to your public frontend domain(s)
-        CORS_ORIGIN: 'https://your-frontend-domain.com',
-        DATABASE_URL: 'postgresql://USER:PASSWORD@127.0.0.1:5432/a7_restaurant',
-        JWT_SECRET: 'change-me-please-change-me-please'
+        // IMPORTANT:
+        // Do NOT hardcode secrets in git. Set these on the server environment instead:
+        // - DATABASE_URL
+        // - JWT_SECRET
+        // - CORS_ORIGIN
       }
     }
   ]

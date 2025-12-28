@@ -77,6 +77,8 @@ pm2 save
 
 See `backend/env.example`.
 
+**No domain yet?** Set `CORS_ORIGIN="*"` temporarily, or set it to `http://YOUR_SERVER_PUBLIC_IP`.
+
 ### DigitalOcean VPS deploy workflow (git pull)
 
 On the VPS:
