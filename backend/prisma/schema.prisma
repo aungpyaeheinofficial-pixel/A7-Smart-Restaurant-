@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StaffRole {
+  Manager
+  Server
+  Kitchen
+  Cashier
+}
+
+enum OrderStatus {
+  pending
+  preparing
+  ready
+  served
+  paid
+}
+
+enum OrderType {
+  dine_in
+  takeout
+  delivery
+}
+
+enum TableStatus {
+  vacant
+  seated
+  served
+  cleaning
+}
+
+enum InventoryStatus {
+  In_Stock
+  Low_Stock
+  Out_of_Stock
+}
+
+model Restaurant {
+  id        String   @id
+  name      String
+  timezone  String
+  currency  String
+  email     String
+  phone     String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  settings   SystemSettings?
+  categories Category[]
+  menuItems  MenuItem[]
+  tables     Table[]
+  staff      StaffMember[]
+  inventory  InventoryItem[]
+  orders     Order[]
+}
+
+model SystemSettings {
+  id                 String   @id
+  restaurantId       String   @unique
+  taxRate            Decimal  @db.Decimal(6, 3)
+  currencySymbol     String
+  autoClockOut       Boolean  @default(true)
+  pinLength          Int      @default(4)
+  primaryColor       String
+  enableKitchenAudio Boolean  @default(true)
+  kdsRefreshRate     Int      @default(5)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id           String   @id
+  restaurantId String
+  name         String
+  icon         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items      MenuItem[]
+
+  @@index([restaurantId])
+  @@unique([restaurantId, name])
+}
+
+model MenuItem {
+  id           String   @id
+  restaurantId String
+  categoryId   String
+  name         String
+  description  String
+  prices       Json
+  cost         Decimal? @db.Decimal(10, 2)
+  image        String?
+  taxRate      Decimal  @db.Decimal(6, 3)
+  active       Boolean  @default(true)
+  is86d        Boolean  @default(false)
+  recipe       Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  orderItems OrderItem[]
+
+  @@index([restaurantId])
+  @@index([categoryId])
+}
+
+model StaffMember {
+  id           String    @id
+  restaurantId String
+  name         String
+  role         StaffRole
+  isActive     Boolean   @default(false)
+  avatar       String
+  lastClockIn  DateTime?
+  email        String?   @unique
+  passwordHash String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  tables     Table[]    @relation("TableServer")
+
+  @@index([restaurantId])
+}
+
+model Table {
+  id             String      @id
+  restaurantId   String
+  label          String
+  capacity       Int
+  status         TableStatus @default(vacant)
+  serverId       String?
+  currentOrderId String?
+  x              Int?
+  y              Int?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  server       StaffMember? @relation("TableServer", fields: [serverId], references: [id], onDelete: SetNull)
+  currentOrder Order?      @relation("CurrentOrder", fields: [currentOrderId], references: [id], onDelete: SetNull)
+  orders       Order[]     @relation("OrderTable")
+
+  @@index([restaurantId])
+  @@unique([restaurantId, label])
+}
+
+model InventoryItem {
+  id           String          @id
+  restaurantId String
+  name         String
+  sku          String
+  onHand       Decimal         @db.Decimal(12, 3)
+  parLevel     Decimal         @db.Decimal(12, 3)
+  unit         String
+  unitCost     Decimal         @db.Decimal(10, 2)
+  status       InventoryStatus @default(In_Stock)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@unique([restaurantId, sku])
+}
+
+model Order {
+  id           String      @id
+  restaurantId String
+  orderNumber  String
+  type         OrderType
+  tableId      String?
+  status       OrderStatus
+  subtotal     Decimal     @db.Decimal(12, 2)
+  tax          Decimal     @db.Decimal(12, 2)
+  tip          Decimal     @db.Decimal(12, 2)
+  total        Decimal     @db.Decimal(12, 2)
+  createdAt    DateTime    @default(now())
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  table      Table?     @relation("OrderTable", fields: [tableId], references: [id], onDelete: SetNull)
+  items      OrderItem[]
+  tablesAsCurrentOrder Table[] @relation("CurrentOrder")
+
+  @@index([restaurantId])
+  @@unique([restaurantId, orderNumber])
+}
+
+model OrderItem {
+  id         String   @id
+  orderId    String
+  menuItemId String
+  name       String
+  qty        Int
+  unitPrice  Decimal  @db.Decimal(12, 2)
+  modifiers  Json?
+  notes      String?
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+

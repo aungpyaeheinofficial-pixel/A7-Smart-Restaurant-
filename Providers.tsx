@@ -15,6 +15,7 @@ interface GlobalState {
   staff: StaffMember[];
   inventory: InventoryItem[];
   loading: boolean;
+  isAuthenticated: boolean;
   refreshAll: () => Promise<void>;
   updateRestaurant: (updates: Partial<Restaurant>) => Promise<void>;
   updateSettings: (updates: Partial<SystemSettings>) => Promise<void>;
@@ -49,14 +50,39 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
-  // Mocked current logged-in user (Ko Kyaw, Manager)
-  const [currentUser] = useState({
-    id: 'staff1',
-    name: 'Ko Kyaw',
-    role: 'Manager'
+  const [currentUser, setCurrentUser] = useState<{ id: string; role: string; name: string }>({
+    id: '',
+    name: '',
+    role: 'Server',
   });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(api.auth.hasToken());
+
+  const bootstrapAuth = useCallback(async () => {
+    const authed = api.auth.hasToken();
+    setIsAuthenticated(authed);
+    if (!authed) {
+      setLoading(false);
+      return false;
+    }
+    try {
+      const me = await api.auth.me();
+      setCurrentUser({ id: me.id, name: me.name, role: me.role });
+      return true;
+    } catch {
+      // token cleared by api layer on 401
+      setIsAuthenticated(false);
+      setCurrentUser({ id: '', name: '', role: 'Server' });
+      setLoading(false);
+      return false;
+    }
+  }, []);
 
   const refreshAll = useCallback(async () => {
+    if (!api.auth.hasToken()) {
+      setIsAuthenticated(false);
+      setLoading(false);
+      return;
+    }
     try {
       const [res, set, o, m, t, s, i] = await Promise.all([
         api.getRestaurant(),
@@ -76,16 +102,24 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
       setInventory([...i]);
     } catch (err) {
       console.error(err);
+      setIsAuthenticated(api.auth.hasToken());
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refreshAll();
-    const interval = setInterval(refreshAll, 10000); // Polling
-    return () => clearInterval(interval);
-  }, [refreshAll]);
+    let interval: number | undefined;
+    (async () => {
+      const ok = await bootstrapAuth();
+      if (!ok) return;
+      await refreshAll();
+      interval = window.setInterval(refreshAll, 10000); // Polling
+    })();
+    return () => {
+      if (interval) window.clearInterval(interval);
+    };
+  }, [bootstrapAuth, refreshAll]);
 
   const updateRestaurant = async (updates: Partial<Restaurant>) => {
     await api.updateRestaurant(updates);
@@ -154,7 +188,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
 
   return (
     <GlobalContext.Provider value={{
-      currentUser, restaurant, settings, orders, menu, tables, staff, inventory, loading,
+      currentUser, restaurant, settings, orders, menu, tables, staff, inventory, loading, isAuthenticated,
       refreshAll, updateRestaurant, updateSettings, createCategory, createOrder, updateOrder, updateMenuItem, updateTables, createInventory, bulkCreateInventory, updateInventory, createStaff, updateStaff, clockStaff
     }}>
       <NotificationProvider>

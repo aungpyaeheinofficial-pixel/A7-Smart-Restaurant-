@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: a7_postgres
+    environment:
+      POSTGRES_USER: a7
+      POSTGRES_PASSWORD: a7password
+      POSTGRES_DB: a7_restaurant
+    ports:
+      - "5432:5432"
+    volumes:
+      - a7_pgdata:/var/lib/postgresql/data
+
+volumes:
+  a7_pgdata:
+
+

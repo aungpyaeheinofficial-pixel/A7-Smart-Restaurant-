@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Providers, useGlobal } from './Providers';
 import { AppLayout } from './features/Layout';
 import { Dashboard } from './features/Dashboard';
@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, User, ArrowRight, X, Info, Shield } from 'lucide-react';
 import { usePermissions } from './hooks/usePermissions';
 import { MENU_ITEM_PERMISSIONS } from './utils/permissions';
+import { api } from './api/services';
 
 /**
  * ENTERPRISE POS LOGIN COMPONENT
@@ -25,14 +26,14 @@ import { MENU_ITEM_PERMISSIONS } from './utils/permissions';
 const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
-    if (!username || !password) {
+    if (!email || !password) {
       setError('Please enter all credentials');
       return;
     }
@@ -40,17 +41,18 @@ const LoginPage: React.FC = () => {
     setIsSubmitting(true);
     setError('');
     
-    // Mock validation logic
-    setTimeout(() => {
-      // In this production-ready MVP demo, any non-empty credentials allow access
-      localStorage.setItem('a7_auth', 'true');
+    try {
+      await api.auth.login(email, password);
       navigate('/app');
+    } catch (err: any) {
+      setError(err?.message || 'Login failed');
+    } finally {
       setIsSubmitting(false);
-    }, 800);
+    }
   };
 
   const fillSampleCredentials = () => {
-    setUsername('admin');
+    setEmail('admin@a7grill.com');
     setPassword('password');
   };
 
@@ -90,16 +92,16 @@ const LoginPage: React.FC = () => {
           <div className="px-10 sm:px-14 pb-16">
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-5">
-                {/* Username Field */}
+                {/* Email Field */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-[#64748B] uppercase tracking-[0.2em] ml-2">Administrator Username</label>
+                  <label className="text-[10px] font-black text-[#64748B] uppercase tracking-[0.2em] ml-2">Administrator Email</label>
                   <div className="relative group">
                     <User className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8] group-focus-within:text-[#E63946] transition-colors" size={20} />
                     <input 
-                      type="text" 
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter username"
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter email"
                       className="w-full pl-14 pr-6 h-16 bg-slate-100 border-2 border-transparent rounded-[1.5rem] outline-none focus:bg-white focus:border-[#E63946] focus:ring-8 ring-red-500/5 font-black text-lg transition-all"
                     />
                   </div>
@@ -138,7 +140,7 @@ const LoginPage: React.FC = () => {
                   className="w-full p-4 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center gap-3 text-blue-600 transition-all group"
                 >
                   <Info size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Use Sample Access: <span className="text-blue-800">admin / password</span></span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">Use Sample Access: <span className="text-blue-800">admin@a7grill.com / password</span></span>
                 </button>
               </div>
               
@@ -191,8 +193,8 @@ const LoginPage: React.FC = () => {
  * PRIVATE ROUTE WRAPPER
  */
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('a7_auth') === 'true';
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  const hasToken = api.auth.hasToken();
+  return hasToken ? <>{children}</> : <Navigate to="/login" />;
 };
 
 /**

@@ -11,6 +11,7 @@ import { NotificationDropdown } from '../components/NotificationDropdown';
 import { usePermissions } from '../hooks/usePermissions';
 import { useGlobal } from '../Providers';
 import { MENU_ITEM_PERMISSIONS } from '../utils/permissions';
+import { api } from '../api/services';
 
 const SIDEBAR_ITEMS = [
   { path: '/app', label: 'Dashboard', mmLabel: 'ဒက်ရှ်ဘုတ်', icon: LayoutDashboard },
@@ -36,7 +37,7 @@ export const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children })
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = () => {
-    localStorage.removeItem('a7_auth');
+    api.auth.logout();
     navigate('/login');
   };
 
