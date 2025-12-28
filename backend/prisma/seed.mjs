@@ -176,17 +176,18 @@ async function main() {
     });
   }
 
+  // NOTE: `currentOrderId` is a FK to Order.id, so we must not set it until after orders exist.
   const tables = [
-    { id: 'T1', label: 'T1', capacity: 4, status: 'seated', serverId: 'staff1', currentOrderId: 'order-123', x: 50, y: 50 },
+    { id: 'T1', label: 'T1', capacity: 4, status: 'seated', serverId: 'staff1', x: 50, y: 50 },
     { id: 'T2', label: 'T2', capacity: 2, status: 'vacant', x: 350, y: 50 },
-    { id: 'T3', label: 'T3', capacity: 6, status: 'served', serverId: 'staff2', currentOrderId: 'order-124', x: 50, y: 300 },
+    { id: 'T3', label: 'T3', capacity: 6, status: 'served', serverId: 'staff2', x: 50, y: 300 },
     { id: 'T4', label: 'T4', capacity: 4, status: 'cleaning', x: 350, y: 300 },
   ];
   for (const t of tables) {
     await prisma.table.upsert({
       where: { id: t.id },
-      update: { ...t, restaurantId, serverId: t.serverId ?? null, currentOrderId: t.currentOrderId ?? null },
-      create: { ...t, restaurantId, serverId: t.serverId ?? null, currentOrderId: t.currentOrderId ?? null },
+      update: { ...t, restaurantId, serverId: t.serverId ?? null, currentOrderId: null },
+      create: { ...t, restaurantId, serverId: t.serverId ?? null, currentOrderId: null },
     });
   }
 
