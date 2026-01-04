@@ -44,15 +44,21 @@ async function fetchJson<T>(path: string, opts?: RequestInit): Promise<T> {
   const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
   const token = getToken();
 
-  const res = await fetch(url, {
-    ...opts,
-    headers: {
-      Accept: 'application/json',
-      ...(opts?.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(opts?.headers ?? {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...opts,
+      headers: {
+        Accept: 'application/json',
+        ...(opts?.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(opts?.headers ?? {}),
+      },
+    });
+  } catch (err) {
+    // Network error (CORS, connection refused, etc.)
+    throw new ApiError(0, err instanceof Error ? err.message : 'Failed to fetch', { code: 'NETWORK_ERROR' });
+  }
 
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
