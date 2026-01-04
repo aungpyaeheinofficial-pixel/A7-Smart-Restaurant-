@@ -121,6 +121,40 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     };
   }, [bootstrapAuth, refreshAll]);
 
+  // Listen for storage changes (when token is set/removed)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const hasToken = api.auth.hasToken();
+      if (hasToken !== isAuthenticated) {
+        setIsAuthenticated(hasToken);
+        if (hasToken) {
+          // Token was added, bootstrap and load data
+          bootstrapAuth().then((ok) => {
+            if (ok) refreshAll();
+          });
+        } else {
+          // Token was removed, clear data
+          setCurrentUser({ id: '', name: '', role: 'Server' });
+          setLoading(false);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    // Also check periodically in case storage event doesn't fire (same-origin)
+    const checkInterval = setInterval(() => {
+      const hasToken = api.auth.hasToken();
+      if (hasToken && !isAuthenticated) {
+        handleStorageChange();
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(checkInterval);
+    };
+  }, [isAuthenticated, bootstrapAuth, refreshAll]);
+
   const updateRestaurant = async (updates: Partial<Restaurant>) => {
     await api.updateRestaurant(updates);
     await refreshAll();
