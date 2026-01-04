@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { HttpError } from '../utils/httpError.js';
 import { verifyToken } from '../auth/jwt.js';
 import { hasPermission, type Permission, type StaffRole } from '../auth/rolePermissions.js';
+import { withRestaurantContext } from '../db/prisma.js';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -33,7 +34,12 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
       role: payload.role as StaffRole,
       restaurantId: payload.restaurantId,
     };
-    return next();
+    
+    // Set restaurantId in async context for automatic Prisma filtering
+    // All Prisma queries in this request will automatically filter by restaurantId
+    return withRestaurantContext(payload.restaurantId, () => {
+      next();
+    });
   } catch {
     return next(new HttpError(401, 'Invalid token', { code: 'UNAUTHORIZED' }));
   }
