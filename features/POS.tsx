@@ -303,35 +303,89 @@ export const POSTerminal: React.FC = () => {
           )}
         </div>
 
-        {/* Footer: Table Selector & Totals */}
+        {/* Footer: Order Type, Table Selector & Totals */}
         <div className="p-8 bg-[#F8F9FA] border-t border-[#E2E8F0] space-y-6">
-          {/* Dine-In Table Selector */}
+          {/* Order Type Selector */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Dine-In Table</p>
-              {selectedTableId && (
-                <button onClick={() => setSelectedTableId(null)} className="text-[10px] font-black text-[#E63946] uppercase hover:underline">Clear</button>
-              )}
-            </div>
-            <div className="grid grid-cols-5 gap-2">
-              {tables.map(table => (
-                <button
-                  key={table.id}
-                  onClick={() => table.status === 'vacant' && setSelectedTableId(selectedTableId === table.id ? null : table.id)}
-                  className={`h-11 rounded-xl text-xs font-black transition-all border flex flex-col items-center justify-center ${
-                    selectedTableId === table.id
-                      ? 'bg-[#E63946] text-white border-transparent shadow-lg shadow-red-100 scale-105'
-                      : table.status === 'vacant'
-                      ? 'bg-white border-[#E2E8F0] text-[#0F172A] hover:border-[#E63946] hover:bg-red-50/30'
-                      : 'bg-slate-200 border-transparent text-slate-400 cursor-not-allowed opacity-50'
-                  }`}
-                  disabled={table.status !== 'vacant'}
-                >
-                  {table.label}
-                </button>
-              ))}
+            <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Order Type</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setOrderType('dine-in');
+                  setSelectedTableId(null);
+                }}
+                className={`h-14 rounded-xl text-sm font-black transition-all border-2 flex items-center justify-center gap-2 ${
+                  orderType === 'dine-in'
+                    ? 'bg-[#E63946] text-white border-transparent shadow-lg shadow-red-100'
+                    : 'bg-white border-[#E2E8F0] text-[#0F172A] hover:border-[#E63946] hover:bg-red-50/30'
+                }`}
+              >
+                <Utensils size={18} />
+                Dine-In
+              </button>
+              <button
+                onClick={() => {
+                  setOrderType('takeout');
+                  setSelectedTableId(null);
+                }}
+                className={`h-14 rounded-xl text-sm font-black transition-all border-2 flex items-center justify-center gap-2 ${
+                  orderType === 'takeout'
+                    ? 'bg-[#E63946] text-white border-transparent shadow-lg shadow-red-100'
+                    : 'bg-white border-[#E2E8F0] text-[#0F172A] hover:border-[#E63946] hover:bg-red-50/30'
+                }`}
+              >
+                <ShoppingBag size={18} />
+                Takeaway
+              </button>
             </div>
           </div>
+
+          {/* Dine-In Table Selector (only show when dine-in is selected) */}
+          {orderType === 'dine-in' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Select Table</p>
+                {selectedTableId && (
+                  <button onClick={() => setSelectedTableId(null)} className="text-[10px] font-black text-[#E63946] uppercase hover:underline">Clear</button>
+                )}
+              </div>
+              
+              {/* Group tables by section */}
+              {(() => {
+                const tablesBySection = tables.reduce((acc, table) => {
+                  const section = table.section || 'Main Dining';
+                  if (!acc[section]) acc[section] = [];
+                  acc[section].push(table);
+                  return acc;
+                }, {} as Record<string, typeof tables>);
+
+                return Object.entries(tablesBySection).map(([section, sectionTables]) => (
+                  <div key={section} className="space-y-2">
+                    <p className="text-[9px] font-black text-[#64748B] uppercase tracking-wider px-1">{section}</p>
+                    <div className="grid grid-cols-5 gap-2">
+                      {sectionTables.map(table => (
+                        <button
+                          key={table.id}
+                          onClick={() => table.status === 'vacant' && setSelectedTableId(selectedTableId === table.id ? null : table.id)}
+                          className={`h-11 rounded-xl text-xs font-black transition-all border flex flex-col items-center justify-center ${
+                            selectedTableId === table.id
+                              ? 'bg-[#E63946] text-white border-transparent shadow-lg shadow-red-100 scale-105'
+                              : table.status === 'vacant'
+                              ? 'bg-white border-[#E2E8F0] text-[#0F172A] hover:border-[#E63946] hover:bg-red-50/30'
+                              : 'bg-slate-200 border-transparent text-slate-400 cursor-not-allowed opacity-50'
+                          }`}
+                          disabled={table.status !== 'vacant'}
+                          title={table.status !== 'vacant' ? `Table ${table.label} is ${table.status}` : `Table ${table.label} - ${table.capacity} seats`}
+                        >
+                          {table.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
 
           {/* Checkout Breakdown */}
           <div className="space-y-2.5 bg-white p-5 rounded-[2rem] border border-[#E2E8F0] shadow-sm">
