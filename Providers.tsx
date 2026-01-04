@@ -177,8 +177,15 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
   };
 
   const createOrder = async (order: Order) => {
-    await api.createOrder(order);
-    await refreshAll();
+    try {
+      const created = await api.createOrder(order);
+      // Refresh all data to include the new order
+      await refreshAll();
+      return created;
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      throw error;
+    }
   };
 
   const updateOrder = async (id: string, status: Order['status']) => {

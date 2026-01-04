@@ -89,28 +89,46 @@ export const POSTerminal: React.FC = () => {
       return;
     }
     
-    const orderNumber = `A${Math.floor(Math.random() * 900 + 100)}`;
-    const newOrder: Order = {
-      id: `order-${Date.now()}`,
-      orderNumber,
-      type: selectedTableId ? 'dine-in' : 'takeout',
-      tableId: selectedTableId || undefined,
-      status: 'pending',
-      items: cart,
-      subtotal,
-      tax,
-      tip: tipAmount,
-      total,
-      createdAt: new Date(),
-    };
+    try {
+      const orderNumber = `A${Math.floor(Math.random() * 900 + 100)}`;
+      const timestamp = Date.now();
+      
+      // Ensure order items have unique IDs and proper structure
+      const orderItems = cart.map((item, index) => ({
+        id: `oi-${timestamp}-${index}`,
+        menuItemId: item.menuItemId,
+        name: item.name,
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+        modifiers: item.modifiers,
+        notes: item.notes || undefined, // Convert empty string to undefined
+      }));
+      
+      const newOrder: Order = {
+        id: `order-${timestamp}`,
+        orderNumber,
+        type: selectedTableId ? 'dine-in' : 'takeout',
+        tableId: selectedTableId || undefined,
+        status: 'pending',
+        items: orderItems,
+        subtotal,
+        tax,
+        tip: tipAmount,
+        total,
+        createdAt: new Date(),
+      };
 
-    await createOrder(newOrder);
-    setLastOrderNumber(orderNumber);
-    setCart([]);
-    setSelectedTableId(null);
-    setTipAmount(0);
-    setIsPaymentModalOpen(false);
-    setIsSuccessModalOpen(true);
+      await createOrder(newOrder);
+      setLastOrderNumber(orderNumber);
+      setCart([]);
+      setSelectedTableId(null);
+      setTipAmount(0);
+      setIsPaymentModalOpen(false);
+      setIsSuccessModalOpen(true);
+    } catch (error: any) {
+      console.error('Failed to create order:', error);
+      alert(`Failed to create order: ${error?.message || 'Unknown error'}`);
+    }
   };
 
   return (
