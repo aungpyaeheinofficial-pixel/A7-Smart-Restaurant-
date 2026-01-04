@@ -3,6 +3,7 @@ import { Router as createRouter } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../db/prisma.js';
 import { requireAuth, requirePermission } from '../../middleware/auth.js';
+import { HttpError } from '../../utils/httpError.js';
 
 const tableSchema = z.object({
   id: z.string().min(1),
