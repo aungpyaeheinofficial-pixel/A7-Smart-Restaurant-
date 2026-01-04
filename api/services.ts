@@ -22,7 +22,18 @@ function getApiBaseUrl(): string {
   if (envUrl) return envUrl.replace(/\/+$/, '');
   // Dev defaults: backend 7500, frontend 3401.
   if ((import.meta as any).env?.DEV) return 'http://localhost:7500';
-  // Prod: assume same origin behind reverse proxy (/api -> backend).
+  // Prod: try to detect backend URL from current hostname
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // If accessing via IP or localhost, use port 7500
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+      return `http://${hostname}:7500`;
+    }
+    // If accessing via domain, assume Nginx proxy or use same origin
+    // You can override with VITE_API_BASE_URL if needed
+    return '';
+  }
+  // SSR/Node context: assume same origin
   return '';
 }
 
