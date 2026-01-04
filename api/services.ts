@@ -199,6 +199,14 @@ export const api = {
     return true;
   },
 
+  createMenuItem: async (item: Omit<MenuItem, 'id' | 'restaurantId' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
+    const created = await fetchJson<MenuItem>('/api/v1/menu/items', {
+      method: 'POST',
+      body: JSON.stringify(item),
+    });
+    return created;
+  },
+
   updateMenuItem: async (id: string, updates: Partial<MenuItem>) => {
     await fetchJson(`/api/v1/menu/items/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(updates) });
     return true;

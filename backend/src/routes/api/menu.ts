@@ -45,6 +45,55 @@ export function menuRoutes(): Router {
     }
   });
 
+  router.post('/items', requireAuth, requirePermission('manage_menu'), async (req, res, next) => {
+    try {
+      const body = z
+        .object({
+          id: z.string().min(1).optional(),
+          categoryId: z.string().min(1),
+          name: z.string().min(1),
+          description: z.string().min(1),
+          prices: z.any(),
+          cost: z.number().nonnegative().optional(),
+          image: z.string().url().optional().or(z.string().min(1).optional()),
+          taxRate: z.number().min(0).max(1),
+          active: z.boolean().optional(),
+          is86d: z.boolean().optional(),
+          recipe: z.any().optional(),
+        })
+        .parse(req.body);
+
+      // Verify category exists and belongs to restaurant
+      const category = await prisma.category.findFirst({
+        where: { id: body.categoryId, restaurantId: req.user!.restaurantId },
+      });
+      if (!category) {
+        throw new HttpError(404, 'Category not found', { code: 'NOT_FOUND' });
+      }
+
+      const created = await prisma.menuItem.create({
+        data: {
+          id: body.id ?? `item-${Date.now()}`,
+          restaurantId: req.user!.restaurantId,
+          categoryId: body.categoryId,
+          name: body.name,
+          description: body.description,
+          prices: body.prices,
+          cost: body.cost,
+          image: body.image,
+          taxRate: body.taxRate,
+          active: body.active ?? true,
+          is86d: body.is86d ?? false,
+          recipe: body.recipe,
+        },
+      });
+
+      res.status(201).json(serializeMenuItem(created));
+    } catch (e) {
+      next(e);
+    }
+  });
+
   router.patch('/items/:id', requireAuth, requirePermission('manage_menu'), async (req, res, next) => {
     try {
       const id = req.params.id;

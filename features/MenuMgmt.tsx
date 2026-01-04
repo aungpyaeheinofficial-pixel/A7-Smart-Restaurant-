@@ -11,7 +11,7 @@ import { useForm } from 'react-hook-form';
 import { usePermissions } from '../hooks/usePermissions';
 
 export const MenuManagement: React.FC = () => {
-  const { menu, inventory, updateMenuItem, createCategory } = useGlobal();
+  const { menu, inventory, updateMenuItem, createMenuItem, createCategory } = useGlobal();
   const { hasPermission } = usePermissions();
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -223,8 +223,17 @@ export const MenuManagement: React.FC = () => {
               image: data.image
             });
           } else {
-            // New items would be handled by a createMenuItem service in production
-            console.log("Creating new item:", data);
+            await createMenuItem({
+              categoryId: data.categoryId,
+              name: data.name,
+              description: data.description,
+              prices: [{ size: 'Standard', amount: parseFloat(data.sellingPrice) }],
+              cost: parseFloat(data.unitCost),
+              taxRate: parseFloat(data.taxRate) / 100,
+              is86d: !data.isInStock,
+              image: data.image || undefined,
+              active: data.isInStock,
+            });
           }
           setIsAddModalOpen(false);
           setEditingItem(null);
