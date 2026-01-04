@@ -34,23 +34,100 @@ export function tablesRoutes(): Router {
       const restaurantId = req.user!.restaurantId;
 
       await prisma.$transaction(async (tx) => {
-        await tx.table.deleteMany({ where: { restaurantId } });
-        if (body.length > 0) {
-          await tx.table.createMany({
-            data: body.map((t) => ({
-              ...t,
+        // Get existing table IDs
+        const existingTables = await tx.table.findMany({
+          where: { restaurantId },
+          select: { id: true },
+        });
+        const existingIds = new Set(existingTables.map(t => t.id));
+        const incomingIds = new Set(body.map(t => t.id));
+
+        // Delete tables that are not in the incoming list
+        const toDelete = Array.from(existingIds).filter(id => !incomingIds.has(id));
+        if (toDelete.length > 0) {
+          await tx.table.deleteMany({
+            where: { id: { in: toDelete }, restaurantId },
+          });
+        }
+
+        // Upsert all tables (create or update)
+        for (const table of body) {
+          await tx.table.upsert({
+            where: { id: table.id },
+            update: {
+              label: table.label,
+              capacity: table.capacity,
+              status: table.status,
+              serverId: table.serverId ?? null,
+              currentOrderId: table.currentOrderId ?? null,
+              x: table.x ?? null,
+              y: table.y ?? null,
+            },
+            create: {
+              ...table,
               restaurantId,
-              serverId: t.serverId ?? null,
-              currentOrderId: t.currentOrderId ?? null,
-              x: t.x ?? null,
-              y: t.y ?? null,
-            })),
+              serverId: table.serverId ?? null,
+              currentOrderId: table.currentOrderId ?? null,
+              x: table.x ?? null,
+              y: table.y ?? null,
+            },
           });
         }
       });
 
       const tables = await prisma.table.findMany({ where: { restaurantId }, orderBy: { label: 'asc' } });
       res.json(tables);
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  // Update individual table (status, label, capacity, etc.)
+  router.patch('/:id', requireAuth, requirePermission('manage_tables'), async (req, res, next) => {
+    try {
+      const id = req.params.id;
+      const body = z
+        .object({
+          label: z.string().min(1).optional(),
+          capacity: z.number().int().min(1).optional(),
+          status: z.enum(['vacant', 'seated', 'served', 'cleaning']).optional(),
+          serverId: z.string().min(1).optional().nullable(),
+          currentOrderId: z.string().min(1).optional().nullable(),
+          x: z.number().int().optional().nullable(),
+          y: z.number().int().optional().nullable(),
+        })
+        .parse(req.body);
+
+      const existing = await prisma.table.findFirst({
+        where: { id, restaurantId: req.user!.restaurantId },
+      });
+      if (!existing) {
+        throw new HttpError(404, 'Table not found', { code: 'NOT_FOUND' });
+      }
+
+      const updated = await prisma.table.update({
+        where: { id },
+        data: {
+          ...(body.label !== undefined && { label: body.label }),
+          ...(body.capacity !== undefined && { capacity: body.capacity }),
+          ...(body.status !== undefined && { status: body.status }),
+          ...(body.serverId !== undefined && { serverId: body.serverId ?? null }),
+          ...(body.currentOrderId !== undefined && { currentOrderId: body.currentOrderId ?? null }),
+          ...(body.x !== undefined && { x: body.x ?? null }),
+          ...(body.y !== undefined && { y: body.y ?? null }),
+        },
+      });
+
+      res.json({
+        id: updated.id,
+        label: updated.label,
+        capacity: updated.capacity,
+        status: updated.status,
+        serverId: updated.serverId ?? undefined,
+        currentOrderId: updated.currentOrderId ?? undefined,
+        x: updated.x ?? undefined,
+        y: updated.y ?? undefined,
+      });
     } catch (e) {
       next(e);
     }

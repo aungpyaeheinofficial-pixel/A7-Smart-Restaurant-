@@ -227,8 +227,16 @@ export const api = {
   },
 
   updateTables: async (tables: Table[]) => {
-    await fetchJson('/api/v1/tables', { method: 'PUT', body: JSON.stringify(tables) });
-    return true;
+    const updated = await fetchJson<Table[]>('/api/v1/tables', { method: 'PUT', body: JSON.stringify(tables) });
+    return updated;
+  },
+
+  updateTable: async (id: string, updates: Partial<Table>) => {
+    const updated = await fetchJson<Table>(`/api/v1/tables/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    return updated;
   },
 
   getOrders: async () => {

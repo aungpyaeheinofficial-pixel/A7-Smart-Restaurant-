@@ -25,6 +25,7 @@ interface GlobalState {
   updateOrder: (id: string, status: Order['status']) => Promise<void>;
   updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
   updateTables: (updatedTables: Table[]) => Promise<void>;
+  updateTable: (id: string, updates: Partial<Table>) => Promise<void>;
   createInventory: (item: InventoryItem) => Promise<void>;
   bulkCreateInventory: (items: InventoryItem[]) => Promise<void>;
   updateInventory: (id: string, updates: Partial<InventoryItem>) => Promise<void>;
@@ -203,6 +204,11 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
     await refreshAll();
   };
 
+  const updateTable = async (id: string, updates: Partial<Table>) => {
+    await api.updateTable(id, updates);
+    await refreshAll();
+  };
+
   const createInventory = async (item: InventoryItem) => {
     await api.createInventoryItem(item);
     await refreshAll();
@@ -236,7 +242,7 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({ children })
   return (
     <GlobalContext.Provider value={{
       currentUser, restaurant, settings, orders, menu, tables, staff, inventory, loading, isAuthenticated,
-      refreshAll, updateRestaurant, updateSettings, createCategory, createMenuItem, createOrder, updateOrder, updateMenuItem, updateTables, createInventory, bulkCreateInventory, updateInventory, createStaff, updateStaff, clockStaff
+      refreshAll, updateRestaurant, updateSettings, createCategory, createMenuItem, createOrder, updateOrder, updateMenuItem, updateTables, updateTable, createInventory, bulkCreateInventory, updateInventory, createStaff, updateStaff, clockStaff
     }}>
       <NotificationProvider>
         <NotificationMonitorWrapper>

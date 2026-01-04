@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useGlobal } from '../Providers';
-import { A7Card, A7Badge, A7Button } from '../components/A7UI';
+import { A7Card, A7Badge, A7Button, A7Modal } from '../components/A7UI';
 import { 
   Users, Clock, Coffee, Sparkles, Utensils, Info, 
   Plus, Save, X, Trash2, Move, Layout, Square, Circle, 
   MousePointer2, Layers, Loader2, CheckCircle2, AlertCircle, 
-  Copy, Maximize2, MousePointer, PlusSquare, Shield
+  Copy, Maximize2, MousePointer, PlusSquare, Shield, Edit2, ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Table, Order } from '../types';
@@ -48,12 +48,14 @@ const getStatusTheme = (status: string): StatusTheme => {
 const TableCard: React.FC<{ 
   table: Table; 
   order?: Order; 
+  allOrders?: Order[];
   isEditMode: boolean;
   onDelete: (id: string) => void;
   onDuplicate: (table: Table) => void;
   onDragEnd: (id: string, x: number, y: number) => void;
+  onEdit?: (table: Table) => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
-}> = ({ table, order, isEditMode, onDelete, onDuplicate, onDragEnd, containerRef }) => {
+}> = ({ table, order, allOrders = [], isEditMode, onDelete, onDuplicate, onDragEnd, onEdit, containerRef }) => {
   const theme = getStatusTheme(table.status);
   const elapsed = order ? Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000) : 0;
 
@@ -92,24 +94,34 @@ const TableCard: React.FC<{
       <A7Card 
         className={`relative h-full flex flex-col !p-0 overflow-hidden border-t-4 ${theme.border} shadow-lg transition-shadow hover:shadow-2xl ${isEditMode ? 'border-dashed border-2 ring-2 ring-offset-2 ring-transparent hover:ring-[#E63946]/20' : ''}`}
       >
-        {isEditMode && (
-          <div className="absolute top-2 right-2 z-20 flex gap-1">
+        <div className="absolute top-2 right-2 z-20 flex gap-1">
+          {isEditMode ? (
+            <>
+              <button 
+                onClick={() => onDuplicate(table)}
+                title="Duplicate Table"
+                className="p-1.5 bg-white text-slate-600 rounded-lg shadow-sm hover:bg-slate-50 border border-slate-200 transition-colors"
+              >
+                <Copy size={14} />
+              </button>
+              <button 
+                onClick={() => onDelete(table.id)}
+                title="Delete Table"
+                className="p-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-colors"
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
+          ) : onEdit ? (
             <button 
-              onClick={() => onDuplicate(table)}
-              title="Duplicate Table"
+              onClick={() => onEdit(table)}
+              title="Edit Table"
               className="p-1.5 bg-white text-slate-600 rounded-lg shadow-sm hover:bg-slate-50 border border-slate-200 transition-colors"
             >
-              <Copy size={14} />
+              <Edit2 size={14} />
             </button>
-            <button 
-              onClick={() => onDelete(table.id)}
-              title="Delete Table"
-              className="p-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-colors"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        )}
+          ) : null}
+        </div>
 
         <div className="px-5 py-4 flex justify-between items-start">
           <div className={isEditMode ? 'select-none' : ''}>
@@ -196,12 +208,14 @@ const TableCard: React.FC<{
 export const TableManagement: React.FC = () => {
   const { hasPermission } = usePermissions();
   const canManageTables = hasPermission('manage_tables');
-  const { tables, orders, updateTables } = useGlobal();
+  const { tables, orders, updateTables, updateTable } = useGlobal();
   const [isEditMode, setIsEditMode] = useState(false);
   const [localTables, setLocalTables] = useState<Table[]>([]);
   const [snapshot, setSnapshot] = useState<Table[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [editingTable, setEditingTable] = useState<Table | null>(null);
+  const [editForm, setEditForm] = useState<{ label: string; capacity: number; status: Table['status'] } | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const syncWithGlobal = useCallback(() => {
@@ -285,6 +299,27 @@ export const TableManagement: React.FC = () => {
   };
 
   const statuses = ['vacant', 'seated', 'served', 'cleaning'] as const;
+
+  const handleEditTable = (table: Table) => {
+    setEditingTable(table);
+    setEditForm({
+      label: table.label,
+      capacity: table.capacity,
+      status: table.status,
+    });
+  };
+
+  const handleSaveTableEdit = async () => {
+    if (!editingTable || !editForm) return;
+    try {
+      await updateTable(editingTable.id, editForm);
+      setEditingTable(null);
+      setEditForm(null);
+      setFeedback({ message: 'Table updated successfully', type: 'success' });
+    } catch (err) {
+      setFeedback({ message: 'Failed to update table', type: 'error' });
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-[1600px] mx-auto min-h-[85vh] flex flex-col">
@@ -411,18 +446,24 @@ export const TableManagement: React.FC = () => {
 
           <div className={isEditMode ? '' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 p-8'}>
             <AnimatePresence>
-              {(isEditMode ? localTables : tables).map(table => (
-                <TableCard 
-                  key={table.id} 
-                  table={table} 
-                  order={orders.find(o => o.id === table.currentOrderId)} 
-                  isEditMode={isEditMode}
-                  onDelete={deleteTable}
-                  onDuplicate={duplicateTable}
-                  onDragEnd={handleDragEnd}
-                  containerRef={canvasRef}
-                />
-              ))}
+              {(isEditMode ? localTables : tables).map(table => {
+                const tableOrders = orders.filter(o => o.tableId === table.id);
+                const currentOrder = tableOrders.find(o => o.id === table.currentOrderId) || tableOrders[0];
+                return (
+                  <TableCard 
+                    key={table.id} 
+                    table={table} 
+                    order={currentOrder}
+                    allOrders={tableOrders}
+                    isEditMode={isEditMode}
+                    onDelete={deleteTable}
+                    onDuplicate={duplicateTable}
+                    onDragEnd={handleDragEnd}
+                    onEdit={canManageTables ? handleEditTable : undefined}
+                    containerRef={canvasRef}
+                  />
+                );
+              })}
             </AnimatePresence>
           </div>
 
@@ -518,6 +559,109 @@ export const TableManagement: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Edit Table Modal */}
+      <A7Modal
+        isOpen={!!editingTable && !!editForm}
+        onClose={() => {
+          setEditingTable(null);
+          setEditForm(null);
+        }}
+        title={`Edit Table ${editingTable?.label}`}
+      >
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-black text-[#0F172A] mb-2">Table Label</label>
+            <input
+              type="text"
+              value={editForm?.label || ''}
+              onChange={(e) => setEditForm(prev => prev ? { ...prev, label: e.target.value } : null)}
+              className="w-full px-4 py-3 bg-[#F8F9FA] border border-[#E2E8F0] rounded-xl focus:ring-2 ring-[#E63946] outline-none font-bold"
+              placeholder="T1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-black text-[#0F172A] mb-2">Capacity</label>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              value={editForm?.capacity || 1}
+              onChange={(e) => setEditForm(prev => prev ? { ...prev, capacity: parseInt(e.target.value) || 1 } : null)}
+              className="w-full px-4 py-3 bg-[#F8F9FA] border border-[#E2E8F0] rounded-xl focus:ring-2 ring-[#E63946] outline-none font-bold"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-black text-[#0F172A] mb-2">Status</label>
+            <div className="grid grid-cols-2 gap-3">
+              {statuses.map(status => {
+                const theme = getStatusTheme(status);
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setEditForm(prev => prev ? { ...prev, status } : null)}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      editForm?.status === status
+                        ? `${theme.bg} ${theme.border} border-opacity-100`
+                        : 'bg-white border-[#E2E8F0] hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <theme.icon size={16} style={{ color: theme.color }} />
+                      <span className="text-sm font-black text-[#0F172A]">{theme.label}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {editingTable && (
+            <div className="pt-4 border-t border-[#E2E8F0]">
+              <p className="text-xs font-bold text-[#64748B] mb-3 uppercase tracking-wider">Orders for this table</p>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {orders.filter(o => o.tableId === editingTable.id).length === 0 ? (
+                  <p className="text-sm text-[#94A3B8] italic">No orders</p>
+                ) : (
+                  orders.filter(o => o.tableId === editingTable.id).map(order => (
+                    <div key={order.id} className="p-3 bg-[#F8F9FA] rounded-xl border border-[#E2E8F0]">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-black text-[#0F172A]">#{order.orderNumber}</span>
+                        <span className="text-xs font-black text-[#E63946]">${order.total.toFixed(2)}</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-[#64748B]">
+                        {order.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                      </p>
+                      <p className="text-[9px] text-[#94A3B8] mt-1">Status: {order.status}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-4 pt-4">
+            <A7Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => {
+                setEditingTable(null);
+                setEditForm(null);
+              }}
+            >
+              Cancel
+            </A7Button>
+            <A7Button
+              className="flex-1"
+              onClick={handleSaveTableEdit}
+            >
+              Save Changes
+            </A7Button>
+          </div>
+        </div>
+      </A7Modal>
     </div>
   );
 };
