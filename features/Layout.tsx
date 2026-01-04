@@ -21,7 +21,7 @@ const SIDEBAR_ITEMS = [
   { path: '/app/tables', label: 'Tables', mmLabel: 'စားပွဲစီမံခန့်ခွဲမှု', icon: SquareMenu },
   { path: '/app/menu', label: 'Menu Mgmt', mmLabel: 'မီနူးစီမံခန့်ခွဲမှု', icon: Package },
   { path: '/app/inventory', label: 'Inventory', mmLabel: 'ကုန်ပစ္စည်းစာရင်း', icon: ClipboardList },
-  { path: '/app/staff', label: 'Staff & Shifts', mmLabel: 'ဝန်ထမ်းနှင့် အလှည့်ကျစနစ်', icon: Users },
+  { path: '/app/staff', label: 'Staff', mmLabel: 'ဝန်ထမ်းစီမံခန့်ခွဲမှု', icon: Users },
   { path: '/app/reports', label: 'Reports', mmLabel: 'အစီရင်ခံစာများ', icon: BarChart3 },
   { path: '/app/settings', label: 'Settings', mmLabel: 'ဆက်တင်များ', icon: Settings },
 ];

@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { useGlobal } from '../Providers';
 import { A7Card, A7Button, A7Badge, A7Modal } from '../components/A7UI';
-import { Users, Clock, LogOut, LogIn, Shield, UserCheck, Plus, Lock, Camera, X, Upload, ChevronDown } from 'lucide-react';
+import { Users, Shield, UserCheck, Plus, Camera, X, Upload, ChevronDown } from 'lucide-react';
 import { StaffMember, StaffRole } from '../types';
 import { useForm } from 'react-hook-form';
 import { usePermissions } from '../hooks/usePermissions';
@@ -16,27 +16,6 @@ const StaffCard: React.FC<{
   onClock: (id: string) => void;
 }> = ({ member, currentUser, onClock }) => {
   const { hasPermission, isManager } = usePermissions();
-  
-  // Permission Logic: 
-  const canManageShift = useMemo(() => {
-    const canManageStaff = hasPermission('manage_staff');
-    const isSelf = currentUser.id === member.id;
-    return canManageStaff || isSelf;
-  }, [currentUser, member, hasPermission]);
-
-  // Data Integrity: Calculate Total Today based on Clock In
-  const totalToday = useMemo(() => {
-    if (!member.isActive || !member.lastClockIn) return "0H 0M";
-    
-    const start = new Date(member.lastClockIn).getTime();
-    const now = Date.now();
-    const diffMs = now - start;
-    
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${hours}H ${minutes}M`;
-  }, [member.isActive, member.lastClockIn]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -49,10 +28,10 @@ const StaffCard: React.FC<{
   };
 
   return (
-    <A7Card className={`relative flex flex-col group overflow-hidden transition-all ${!canManageShift ? 'opacity-90' : ''}`} hoverEffect>
+    <A7Card className="relative flex flex-col group overflow-hidden transition-all" hoverEffect>
       <div className={`absolute top-0 left-0 w-full h-1.5 ${member.isActive ? 'bg-[#10B981]' : 'bg-[#CBD5E1]'}`}></div>
       
-      <div className="flex items-start gap-4 mb-6 pt-2">
+      <div className="flex items-start gap-4 pt-2">
         <div className="relative">
           <img 
             src={member.avatar} 
@@ -71,43 +50,6 @@ const StaffCard: React.FC<{
           </div>
         </div>
       </div>
-
-      <div className="space-y-4 mb-6 flex-1">
-        <div className="bg-[#F8F9FA] p-4 rounded-2xl space-y-3 border border-[#F1F5F9]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[10px] font-black text-[#64748B] uppercase tracking-widest">
-              <Clock size={12} /> Last Clock In
-            </div>
-            <span className="text-sm font-black text-[#0F172A]">
-              {member.lastClockIn ? new Date(member.lastClockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-            <div className="flex items-center gap-2 text-[10px] font-black text-[#64748B] uppercase tracking-widest">
-               Session Time
-            </div>
-            <span className={`text-sm font-black ${member.isActive ? 'text-[#10B981]' : 'text-slate-400'}`}>
-              {member.isActive && member.lastClockIn ? totalToday : 'NOT STARTED'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {canManageShift ? (
-        <A7Button 
-          variant={member.isActive ? 'secondary' : 'primary'}
-          className="w-full rounded-2xl h-12 font-black uppercase tracking-widest text-xs shadow-lg shadow-black/5"
-          onClick={() => onClock(member.id)}
-        >
-          {member.isActive ? <><LogOut size={16} /> End Shift</> : <><LogIn size={16} /> Start Shift</>}
-        </A7Button>
-      ) : (
-        <div className="w-full h-12 flex items-center justify-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 gap-2 cursor-not-allowed">
-          <Lock size={14} />
-          <span className="text-[10px] font-black uppercase tracking-widest">Manager Protected</span>
-        </div>
-      )}
     </A7Card>
   );
 };
@@ -232,7 +174,7 @@ export const StaffMgmt: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Staff Management</h2>
-          <p className="text-[#64748B] font-medium mt-1">Monitor shifts, attendance, and role permissions.</p>
+          <p className="text-[#64748B] font-medium mt-1">Monitor staff members and role permissions.</p>
         </div>
         <div className="flex gap-3">
           <A7Button variant="secondary" className="rounded-2xl border-2 border-[#E2E8F0] px-6 h-12">
@@ -248,7 +190,7 @@ export const StaffMgmt: React.FC = () => {
       </div>
 
       {/* Analytics Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <A7Card className="!p-6 bg-white flex items-center gap-5 border-none shadow-sm">
            <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
              <UserCheck size={28} />
@@ -256,15 +198,6 @@ export const StaffMgmt: React.FC = () => {
            <div>
              <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Currently Active</p>
              <p className="text-2xl font-black text-[#0F172A]">{staff.filter(s => s.isActive).length} Members</p>
-           </div>
-        </A7Card>
-        <A7Card className="!p-6 bg-white flex items-center gap-5 border-none shadow-sm">
-           <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-             <Clock size={28} />
-           </div>
-           <div>
-             <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">Avg Shift Length</p>
-             <p className="text-2xl font-black text-[#0F172A]">6.4 Hours</p>
            </div>
         </A7Card>
         <A7Card className="!p-6 bg-white flex items-center gap-5 border-none shadow-sm">

@@ -386,7 +386,7 @@ export const Dashboard: React.FC = () => {
       value: metrics.staffActiveCount, 
       icon: Users, 
       color: "bg-indigo-100 text-indigo-600", 
-      trend: "Full Shift", 
+      trend: "Active", 
       path: "/app/staff" 
     },
   ], [filteredOrders.length, metrics, timeRange]);
