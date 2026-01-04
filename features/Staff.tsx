@@ -13,9 +13,7 @@ import { usePermissions } from '../hooks/usePermissions';
 const StaffCard: React.FC<{ 
   member: StaffMember; 
   currentUser: { id: string; role: string };
-  onClock: (id: string) => void;
-}> = ({ member, currentUser, onClock }) => {
-  const { hasPermission, isManager } = usePermissions();
+}> = ({ member, currentUser }) => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -154,7 +152,7 @@ const NewStaffModal: React.FC<{ isOpen: boolean; onClose: () => void; onSave: (d
 };
 
 export const StaffMgmt: React.FC = () => {
-  const { staff, currentUser, clockStaff, createStaff } = useGlobal();
+  const { staff, currentUser, createStaff } = useGlobal();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const handleAddMember = async (data: any) => {
@@ -226,7 +224,6 @@ export const StaffMgmt: React.FC = () => {
             key={member.id} 
             member={member} 
             currentUser={currentUser} 
-            onClock={clockStaff} 
           />
         ))}
       </div>
