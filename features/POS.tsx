@@ -6,7 +6,7 @@ import {
   Search, ShoppingBag, Trash2, Plus, Minus, 
   CreditCard, Banknote, Smartphone,
   CheckCircle2, Info, ReceiptText, StickyNote,
-  Heart, Shield, AlertCircle
+  Heart, Shield, AlertCircle, Utensils
 } from 'lucide-react';
 import { MenuItem, OrderItem, Order } from '../types';
 import { usePermissions } from '../hooks/usePermissions';
@@ -19,6 +19,7 @@ export const POSTerminal: React.FC = () => {
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [orderType, setOrderType] = useState<'dine-in' | 'takeout'>('dine-in');
   const [tipAmount, setTipAmount] = useState<number>(0);
   
   // UI State
@@ -107,8 +108,8 @@ export const POSTerminal: React.FC = () => {
       const newOrder: Order = {
         id: `order-${timestamp}`,
         orderNumber,
-        type: selectedTableId ? 'dine-in' : 'takeout',
-        tableId: selectedTableId || undefined,
+        type: orderType,
+        tableId: orderType === 'dine-in' ? (selectedTableId || undefined) : undefined,
         status: 'pending',
         items: orderItems,
         subtotal,
@@ -122,6 +123,7 @@ export const POSTerminal: React.FC = () => {
       setLastOrderNumber(orderNumber);
       setCart([]);
       setSelectedTableId(null);
+      setOrderType('dine-in');
       setTipAmount(0);
       setIsPaymentModalOpen(false);
       setIsSuccessModalOpen(true);

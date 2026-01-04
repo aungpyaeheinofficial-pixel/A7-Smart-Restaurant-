@@ -141,6 +141,7 @@ model Table {
   label          String
   capacity       Int
   status         TableStatus @default(vacant)
+  section        String?     // e.g., "Main Dining", "Patio", "Bar", "VIP"
   serverId       String?
   currentOrderId String?
   x              Int?
@@ -154,6 +155,7 @@ model Table {
   orders       Order[]     @relation("OrderTable")
 
   @@index([restaurantId])
+  @@index([restaurantId, section])
   @@unique([restaurantId, label])
 }
 

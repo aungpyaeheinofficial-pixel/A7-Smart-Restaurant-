@@ -219,6 +219,7 @@ export const api = {
       label: t.label,
       capacity: t.capacity,
       status: t.status,
+      section: t.section ?? undefined,
       serverId: t.serverId ?? undefined,
       currentOrderId: t.currentOrderId ?? undefined,
       x: t.x ?? undefined,

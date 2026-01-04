@@ -88,6 +88,7 @@ export interface Table {
   label: string;
   capacity: number;
   status: TableStatus;
+  section?: string; // e.g., "Main Dining", "Patio", "Bar", "VIP"
   serverId?: string;
   currentOrderId?: string;
   x?: number;
